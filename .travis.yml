@@ -1,28 +1,39 @@
-sudo: required
-
 language: generic
+
+sudo: required
 
 services:
   - docker
 
 before_install:
-  - echo "start creating an image with dockerfile"
-  - docker build -t nb5683/docker-react-app -f Dockerfile.dev .
+  - docker build -t nb5683/react-test-app -f ./frontend/Dockerfile.dev ./frontend
 
 script:
-  - docker run -e CI=true nb5683/docker-react-app npm run test -- --coverage
+  - docker run -e CI=true nb5683/react-test-app npm run test
 
 after_success:
-    - echo "Test success"
+  - docker build -t nb5683/docker-frontend ./frontend
+  - docker build -t nb5683/docker-backend ./backend
+  - docker build -t nb5683/docker-mysql ./mysql
+  - docker build -t nb5683/docker-nginx ./nginx
+
+  - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_ID" --password-stdin
+
+  - docker push nb5683/docker-frontend
+  - docker push nb5683/docker-backend
+  - docker push nb5683/docker-mysql
+  - docker push nb5683/docker-nginx
 
 deploy:
-  provicer: elasticbeanstalk
+  provider: elasticbeanstalk
+  edge: true
   region: "ap-northeast-2"
-  app: "docker-react-app"
-  env: "Dockerreactapp-env"
-  bucket_name: "elasticbeanstalk-ap-northeast-2-420758173892"
-  bucket_path: "docker-react-app"
+  app: "docker-fullstack-app"
+  env: "Dockerfullstackapp-env"
+  bucket_name: elasticbeanstalk-ap-northeast-2-420758173892
+  bucket_path: "docker-fullstack-app"
   on:
     branch: master
+
   access_key_id: $AWS_ACCESS_KEY
   secret_access_key: $AWS_SECRET_ACCESS_KEY
